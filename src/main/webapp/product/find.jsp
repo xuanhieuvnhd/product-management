@@ -6,6 +6,11 @@
 <body>
 <h1>Tìm sản phẩm theo tên</h1>
 <p><a href="/products">Quay lại danh sách sản phẩm</a></p>
+<table border="1">
+<tr>
+    <td>Tên</td>
+    <td>${requestScope['product'].getName()}</td>
+</tr>
     <tr>
         <td>Giá</td>
         <td>${requestScope['product'].getPrice()}</td>

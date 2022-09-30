@@ -1,59 +1,134 @@
 package service;
 
+import connectJDBC.ConnectJDBC;
 import model.Product;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
-public class ProductServicelmpl implements ProductService{
-    private static Map<Integer, Product> products = new HashMap<>();
-    static {
-        products.put(1,new Product(1,"Sting",10000,30,"Nước tăng lực" ));
-        products.put(2,new Product(2,"Pepsi",12000,50,"Nước ngọt có ga" ));
-        products.put(3,new Product(3,"Heniken",24000,60,"Bia đức" ));
-        products.put(4,new Product(4,"Vodka",120000,80,"Rượu nga" ));
-        products.put(5,new Product(5,"Thăng long",10000,100,"Thuốc lá" ));
-        products.put(6,new Product(6,"Tiên lãng",15000,120,"Thuốc lào" ));
+
+public class ProductServicelmpl implements ProductService {
+    Connection connection = ConnectJDBC.connect();
+
+    public ProductServicelmpl() {
     }
 
     @Override
     public List<Product> findAll() {
-        return new ArrayList<>(products.values());
+        List<Product> products = new ArrayList<>();
+        try {
+            String sql = "SELECT * FROM quanlysanpham.product;";
+            PreparedStatement ps = connection.prepareStatement(sql);
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                int id = rs.getInt("productID");
+                String name = rs.getString("productName");
+                Double price = rs.getDouble("productPrice");
+                int amount = rs.getInt("productAmount");
+                String description = rs.getString("productDescription");
+                products.add(new Product(id, name, price, amount, description));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return products;
     }
 
     @Override
     public void Save(Product product) {
-        products.put(product.getId(), product);
+        try {
+            String sql = "INSERT INTO Product ( productName, productPrice, productAmount, productDescription) VALUES (?,?,?,?)";
+            PreparedStatement ps=connection.prepareStatement(sql);
+            ps.setString(1, product.getName());
+            ps.setDouble(2, product.getPrice());
+            ps.setInt(3,product.getAmount());
+            ps.setString(4,product.getDescription());
+            System.out.println(ps.executeUpdate());
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return;
     }
 
     @Override
     public Product findById(int id) {
-        return products.get(id);
-    }
-
-    @Override
-    public void update(int id, Product product) {
-        products.putIfAbsent(id,product);
-    }
-
-    @Override
-    public void remove(int id) {
-        products.remove(id);
-    }
-
-    @Override
-    public Product findProductByName(String name) {
-        int index = -1;
-        int id = -1;
-        List<Product> productList = findAll();
-        for (int i = 0; i < productList.size(); i++) {
-            if (productList.get(i).getName().contains(name)){
-                index = i;
+        Product product= null;
+        try {
+            String sql = "Select * from product where productID=?";
+            PreparedStatement ps= connection.prepareStatement(sql);
+            ps.setInt(1,id);
+            ResultSet rs= ps.executeQuery();
+            while(rs.next()){
+                String name = rs.getString("productName");
+                Double price = rs.getDouble("productPrice");
+                int amount = rs.getInt("productAmount");
+                String description = rs.getString("productDescription");
+                product =new Product(id,name, price,amount,description);
             }
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
-        id = productList.get(index).getId();
-        return products.get(id);
+        return product;
+    }
+
+    @Override
+    public boolean update(Product product) {
+        boolean checkUpdate = false;
+        String sql = "update product set productName=?, productPrice=?, productAmount=?,productDescription=? where productID =?";
+        try{
+            PreparedStatement statement = connection.prepareStatement(sql);
+            statement.setString(1, product.getName());
+            statement.setDouble(2, product.getPrice());
+            statement.setInt(3, product.getAmount());
+            statement.setString(4, product.getDescription());
+            statement.setInt(5, product.getId());
+            checkUpdate = statement.executeUpdate() >0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return checkUpdate;
+    }
+
+    @Override
+    public boolean remove(int id) {
+        boolean rowDeleted= false;
+        try {
+            String sql="Delete from product where productID=?";
+            PreparedStatement ps=connection.prepareStatement(sql);
+            ps.setInt(1,id);
+            rowDeleted=ps.executeUpdate()>0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return rowDeleted;
+    }
+
+    @Override
+    public List<Product> findProductByName(String product) {
+        List<Product> products=new ArrayList<>();
+        Product p= null;
+        try {
+            String sql ="select * from product productName like ? or productDescription like ?";
+            PreparedStatement ps=connection.prepareStatement(sql);
+            ps.setString(1, "%"+product+"%");
+            ps.setString(2, "%"+product+"%");
+            ResultSet rs= ps.executeQuery();
+            while (rs.next()){
+                int id= rs.getInt("productID");
+                String name = rs.getString("productName");
+                Double price = rs.getDouble("productPrice");
+                int amount = rs.getInt("productAmount");
+                String description = rs.getString("productDescription");
+                products.add(new Product(id,name, price,amount,description));
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return products;
     }
 }

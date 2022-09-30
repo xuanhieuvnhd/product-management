@@ -11,6 +11,7 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.sql.SQLException;
 import java.util.List;
 
 @WebServlet(name = "ProductServlet", value = "/products")
@@ -18,7 +19,7 @@ public class ProductServlet extends HttpServlet {
     private ProductService productService = new ProductServicelmpl();
 
     private void listProducts(HttpServletRequest request, HttpServletResponse response) {
-        List<Product> products = this.productService.findAll();
+        List<Product> products = productService.findAll();
         request.setAttribute("products", products);
         RequestDispatcher dispatcher = request.getRequestDispatcher("product/list.jsp");
         try {
@@ -42,8 +43,7 @@ public class ProductServlet extends HttpServlet {
         double price = Double.parseDouble(request.getParameter("price"));
         int amount = Integer.parseInt(request.getParameter("amount"));
         String description = request.getParameter("description");
-        int id= (int) (Math.random() * 100);
-        Product product = new Product(id, name, price, amount, description);
+        Product product = new Product(name, price, amount, description);
         this.productService.Save(product);
         RequestDispatcher dispatcher = request.getRequestDispatcher("product/create.jsp");
         request.setAttribute("message", "Tạo sản phẩm mới thành công");
@@ -89,7 +89,7 @@ public class ProductServlet extends HttpServlet {
             product.setPrice(price);
             product.setAmount(amount);
             product.setDescription(description);
-            this.productService.update(id, product);
+            this.productService.update( product);
             request.setAttribute("product", product);
             request.setAttribute("message", "Sửa thông tin sản phẩm thành công");
             dispatcher = request.getRequestDispatcher("product/edit.jsp");
@@ -152,20 +152,17 @@ public class ProductServlet extends HttpServlet {
     }
 
 
-    private void findProductByName(HttpServletRequest request, HttpServletResponse response) {
+    private void findProductByName(HttpServletRequest request, HttpServletResponse response)throws SQLException,IOException,ServletException {
         String name = request.getParameter("inputProduct");
-        Product product = this.productService.findProductByName(name);
-        RequestDispatcher dispatcher;
-        if (product == null) {
+        List<Product> products=productService.findProductByName(name);
+        request.setAttribute("product",products);
+        RequestDispatcher dispatcher= request.getRequestDispatcher("product/find.jsp");
+        dispatcher.forward(request,response);
+        if (products == null) {
             dispatcher = request.getRequestDispatcher("error-404.jsp");
         } else {
-            request.setAttribute("product", product);
+            request.setAttribute("product", products);
             dispatcher = request.getRequestDispatcher("product/view.jsp");
-        }
-        try {
-            dispatcher.forward(request, response);
-        } catch (ServletException | IOException e) {
-            e.printStackTrace();
         }
     }
 
@@ -200,7 +197,7 @@ public class ProductServlet extends HttpServlet {
     }
 
     @Override
-    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException,ServletException{
         String action = request.getParameter("action");
         if (action == null) {
             action = "";
@@ -219,7 +216,11 @@ public class ProductServlet extends HttpServlet {
                 break;
             }
             case "find": {
-                findProductByName(request, response);
+                try {
+                    findProductByName(request, response);
+                } catch (SQLException e) {
+                    throw new RuntimeException(e);
+                }
             }
             default: {
                 break;

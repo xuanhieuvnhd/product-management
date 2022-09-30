@@ -8,7 +8,7 @@ public interface ProductService {
     List<Product> findAll();
     void Save(Product product);
     Product findById(int id);
-    void update(int id, Product product);
-    void remove(int id);
-    Product findProductByName(String name);
+    boolean update(Product product);
+    boolean remove(int id);
+    List<Product> findProductByName(String name);
 }
